@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Pernikahan - Romeo & Juliet</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Undangan Pernikahan Romeo & Juliet 💍" />
+    <meta property="og:description" content="Kami mengundang kehadiran Bapak/Ibu pada pernikahan kami, 30 Mei 2026 di Masjid Al-Marzukiyah Cipinang Muara" />
+    <meta property="og:image" content="" />
+    <meta property="og:url" content="" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&family=Great+Vibes&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!--
+    ================================================================
+    FIREBASE — untuk RSVP & Buku Tamu bisa dilihat semua tamu
+    ================================================================
+    Langkah aktivasi:
+    1. Buka https://console.firebase.google.com
+    2. Buat project baru
+    3. Pilih "Realtime Database" → "Create Database" → "Start in test mode"
+    4. Klik ikon gear (Project Settings) → scroll ke "Your apps" → pilih web (</>)
+    5. Copy nilai firebaseConfig dan paste ke variabel FIREBASE_CONFIG di bawah
+    6. Simpan file → upload ulang ke hosting
+    ================================================================
+    Jika FIREBASE_CONFIG.databaseURL dibiarkan kosong (""),
+    data akan tetap tersimpan di localStorage browser masing-masing tamu
+    (data tidak terbagi antar tamu).
+    ================================================================
+    -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --blush-pink: #fdf2f8; --main-pink: #f472b6; --dark-pink: #be185d; --gold: #d4af37; }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--blush-pink); color: #431407; overflow-x: hidden; }
+        .font-serif  { font-family: 'Playfair Display', serif; }
+        .font-cursive{ font-family: 'Great Vibes', cursive; }
+        .glass-morphism { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); }
+        .petals-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99; overflow: hidden; }
+        .petal { position: absolute; background: #fbcfe8; border-radius: 150% 0 150% 0; opacity: 0.7; animation: fall linear infinite; }
+        @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 0.7; } 100% { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
+
+        /* ── Slide System ── */
+        .slide { display: none; }
+        .slide.active { display: block; }
+
+        /* ── Navbar ── */
+        .nav-link { display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+                    color: #9ca3af; transition: color 0.2s, transform 0.2s; cursor: pointer; background: none; border: none; padding: 0; }
+        .nav-link:hover  { color: var(--dark-pink); transform: translateY(-5px); }
+        .nav-link.nav-active { color: var(--dark-pink); transform: translateY(-5px); }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #fdf2f8; }
+        ::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 10px; }
+
+        .rsvp-item-hadir        { border-left: 4px solid #22c55e; }
+        .rsvp-item-berhalangan  { border-left: 4px solid #f472b6; }
+        .badge-hadir       { background:#dcfce7; color:#15803d; font-size:10px; padding:2px 8px; border-radius:999px; font-weight:600; text-transform:uppercase; }
+        .badge-berhalangan { background:#fce7f3; color:#be185d; font-size:10px; padding:2px 8px; border-radius:999px; font-weight:600; text-transform:uppercase; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- WELCOME OVERLAY                                         -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="welcome-overlay" class="fixed inset-0 z-[100] flex items-end justify-center text-center p-6 pb-16 bg-cover bg-center"
+     style="background-image: linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)), url('img/foto 1.jpg');">
+    <div class="max-w-md glass-morphism p-10 rounded-[3rem] shadow-2xl border-white/50" data-aos="zoom-in">
+        <h2 class="font-serif text-sm mb-2 tracking-[0.3em] uppercase text-pink-800">The Wedding Of</h2>
+        <h1 class="font-cursive text-7xl mb-6 text-pink-600">Romeo &amp; Juliet</h1>
+        <div class="w-12 h-[1px] bg-pink-300 mx-auto mb-6"></div>
+        <p class="mb-8 font-light italic text-gray-700">Kepada Yth. Bapak/Ibu/Saudara/i</p>
+        <h3 id="nama-tamu" class="font-serif text-2xl font-bold text-pink-900 mb-6 tracking-wide capitalize">Nama Tamu</h3>
+        <p class="mb-8 font-light italic text-gray-700">Kami mengundang Anda untuk hadir di hari bahagia kami.</p>
+        <button onclick="openInvitation()" class="bg-pink-600 hover:bg-pink-700 text-white px-10 py-4 rounded-full shadow-lg transition-all transform hover:scale-105 font-semibold tracking-wide">
+            <i class="fa-solid fa-envelope-open-text mr-2"></i> Buka Undangan
+        </button>
+    </div>
+</div>
+
+<audio id="bg-music" loop><source src="asset/music.mp3" type="audio/mpeg"></audio>
+<div class="petals-container" id="petals"></div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SLIDE 1 — HOME                                          -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="slide-home" class="slide active">
+    <section id="home" class="relative h-screen flex items-center justify-center text-center overflow-hidden">
+        <div class="absolute inset-0 z-0 overflow-hidden">
+            <div class="absolute inset-0" style="background: linear-gradient(135deg,#fce4ec 0%,#f8bbd0 40%,#fdf2f8 100%);"></div>
+            <img src="img/foto 2.jpg" alt="Hero" class="absolute inset-0 w-full h-full object-cover scale-110" onerror="this.style.display='none'">
+            <div class="absolute inset-0 bg-white/20 backdrop-blur-[2px]"></div>
+        </div>
+        <div class="relative z-10 px-4">
+            <p class="font-serif text-pink-800 text-lg uppercase tracking-[0.5em] mb-4" data-aos="fade-down">The Wedding Of</p>
+            <h1 class="font-cursive text-8xl md:text-9xl mb-6 text-pink-600 drop-shadow-sm" data-aos="zoom-in" data-aos-delay="200">Romeo &amp; Juliet</h1>
+            <p class="font-serif text-2xl text-pink-900 font-light" data-aos="fade-up" data-aos-delay="400">30 . 05 . 2026</p>
+        </div>
+    </section>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SLIDE 2 — COUPLE                                        -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="slide-couple" class="slide">
+    <section id="couple" class="py-24 px-6 bg-white min-h-screen">
+        <div class="container mx-auto max-w-5xl">
+            <div class="text-center mb-20" data-aos="fade-up">
+                <h2 class="font-cursive text-6xl text-pink-600 mb-4">Pasangan Berbahagia</h2>
+                <p class="text-gray-500 italic">"Maka benarlah bahwa cinta adalah karunia yang harus dijaga."</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <!-- MEMPELAI PRIA -->
+                <div class="text-center" data-aos="fade-right">
+                    <div class="relative inline-block mb-8 group">
+                        <div class="absolute -inset-4 bg-pink-100 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+                        <div class="relative w-72 h-72 rounded-full overflow-hidden border-[8px] border-white shadow-xl mx-auto">
+                            <img src="img/laki.jpg" alt="Romeo" class="w-full h-full object-cover transform hover:scale-110 transition-all duration-700">
+                        </div>
+                    </div>
+                    <h3 class="font-cursive text-5xl text-pink-700 mb-2">Romeo</h3>
+                    <p class="font-serif font-bold text-xl mb-4 text-pink-900">(Romeo)</p>
+                    <p class="text-gray-600 text-sm md:text-base px-10">Putra Keempat Dari <br><span class="font-bold text-gray-800">Bpk. Romeo &amp; Ibu Juliet</span></p>
+                </div>
+                <!-- MEMPELAI WANITA -->
+                <div class="text-center" data-aos="fade-left">
+                    <div class="relative inline-block mb-8 group">
+                        <div class="absolute -inset-4 bg-pink-100 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+                        <div class="relative w-72 h-72 rounded-full overflow-hidden border-[8px] border-white shadow-xl mx-auto">
+                            <img src="img/cewe.jpg" alt="Juliet" class="w-full h-full object-cover transform hover:scale-110 transition-all duration-700">
+                        </div>
+                    </div>
+                    <h3 class="font-cursive text-5xl text-pink-700 mb-2">Juliet</h3>
+                    <p class="font-serif font-bold text-xl mb-4 text-pink-900">(Juliet)</p>
+                    <p class="text-gray-600 text-sm md:text-base px-10">Putri Pertama Dari <br><span class="font-bold text-gray-800">Bpk. Jul &amp; Ibu Rom</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SLIDE 3 — EVENT + LOVE STORY                            -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="slide-event" class="slide">
+
+    <!-- EVENT / SAVE THE DATE -->
+    <section id="event" class="py-24 px-6 bg-pink-50 relative overflow-hidden">
+        <div class="container mx-auto text-center relative z-10">
+            <h2 class="font-serif text-3xl text-pink-900 mb-12 tracking-widest" data-aos="fade-up">SAVE THE DATE</h2>
+            <div id="countdown" class="flex justify-center gap-4 md:gap-10 mb-20" data-aos="zoom-in">
+                <div class="bg-white p-6 rounded-3xl shadow-lg min-w-[80px] md:min-w-[140px] border-b-4 border-pink-400">
+                    <span id="days" class="block text-4xl md:text-6xl font-bold text-pink-600">00</span>
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Hari</span>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-lg min-w-[80px] md:min-w-[140px] border-b-4 border-pink-400">
+                    <span id="hours" class="block text-4xl md:text-6xl font-bold text-pink-600">00</span>
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Jam</span>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-lg min-w-[80px] md:min-w-[140px] border-b-4 border-pink-400">
+                    <span id="minutes" class="block text-4xl md:text-6xl font-bold text-pink-600">00</span>
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Menit</span>
+                </div>
+                <div class="bg-white p-6 rounded-3xl shadow-lg min-w-[80px] md:min-w-[140px] border-b-4 border-pink-400">
+                    <span id="seconds" class="block text-4xl md:text-6xl font-bold text-pink-600">00</span>
+                    <span class="text-[10px] uppercase tracking-widest text-gray-400">Detik</span>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="glass-morphism p-10 rounded-[3rem] shadow-xl" data-aos="fade-right">
+                    <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fa-solid fa-ring text-pink-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-serif text-2xl mb-4 font-bold text-pink-900">Akad Nikah</h3>
+                    <p class="text-pink-600 font-semibold mb-2">Sabtu, 30 Mei 2026</p>
+                    <p class="text-gray-500 mb-6">Pukul 08:00 WIB - Selesai</p>
+                    <p class="text-gray-700 italic text-sm">JL. Masjid Al-Marzukiyah Cipinang Muara</p>
+                </div>
+                <div class="glass-morphism p-10 rounded-[3rem] shadow-xl" data-aos="fade-left">
+                    <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fa-solid fa-champagne-glasses text-pink-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-serif text-2xl mb-4 font-bold text-pink-900">Resepsi</h3>
+                    <p class="text-pink-600 font-semibold mb-2">Sabtu, 30 Mei 2026</p>
+                    <p class="text-gray-500 mb-6">Pukul 10:00 WIB - Selesai</p>
+                    <p class="text-gray-700 italic text-sm">JL. Masjid Al-Marzukiyah Cipinang Muara</p>
+                </div>
+            </div>
+            <div class="mt-16" data-aos="zoom-in">
+                <a href="https://maps.app.goo.gl/WW7Q8tsUq3L8Uh6U7" target="_blank"
+                   class="inline-flex items-center bg-pink-600 text-white px-10 py-4 rounded-full hover:bg-pink-700 transition-all shadow-lg group">
+                    <i class="fa-solid fa-location-dot mr-3 group-hover:animate-bounce"></i> Petunjuk Lokasi
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- LOVE STORY -->
+    <section id="lovestory" class="py-24 px-6 bg-white text-center">
+        <div class="max-w-2xl mx-auto" data-aos="fade-up">
+            <h2 class="font-cursive text-5xl text-pink-600 mb-8">Our Love Story</h2>
+            <div class="relative p-10 italic text-gray-600 leading-relaxed bg-pink-50 rounded-3xl border-l-8 border-pink-400">
+                <i class="fa-solid fa-quote-left absolute top-4 left-4 text-pink-200 text-4xl"></i>
+                "2023 Akhir kami saling mengenal melalui pertemuan yang tidak sengaja di sebuah acara keluarga. Dari sana, kami mulai sering berkomunikasi dan akhirnya menyadari bahwa kami memiliki banyak kesamaan dan kecocokan. <br><br>
+                Setelah beberapa waktu, tepatnya dibulan Juni 2024 kami memutuskan untuk menjalin hubungan yang lebih serius. <br><br>
+                Kini, setelah perjalanan yang penuh dengan cinta dan kebahagiaan, kami siap untuk melangkah ke jenjang pernikahan dan mengikat janji suci di hadapan Allah SWT dan orang-orang tercinta. Untuk Membentuk Rumah tangga Yang Sakinah Mawaddah Warohmah"
+            </div>
+        </div>
+    </section>
+
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SLIDE 4 — GALLERY                                       -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="slide-gallery" class="slide">
+    <section id="gallery" class="py-24 px-6 bg-pink-50">
+        <div class="container mx-auto">
+            <h2 class="font-serif text-4xl text-center text-pink-900 mb-16" data-aos="fade-up">Galeri Momen</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+                <div class="overflow-hidden rounded-3xl h-64 shadow-md aspect-square" data-aos="zoom-in">
+                    <img src="img/foto 3.jpg" class="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="G1">
+                </div>
+                <div class="overflow-hidden rounded-3xl h-64 shadow-md aspect-square" data-aos="zoom-in" data-aos-delay="100">
+                    <img src="img/foto 4.jpg" class="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="G2">
+                </div>
+                <div class="overflow-hidden rounded-3xl h-64 shadow-md aspect-square" data-aos="zoom-in" data-aos-delay="200">
+                    <img src="img/foto 5.jpg" class="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="G3">
+                </div>
+                <div class="overflow-hidden rounded-3xl h-64 shadow-md aspect-square" data-aos="zoom-in">
+                    <img src="img/foto 6.jpg" class="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="G4">
+                </div>
+                <div class="overflow-hidden rounded-3xl h-64 shadow-md aspect-square" data-aos="zoom-in" data-aos-delay="100">
+                    <img src="img/foto 7.jpg" class="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="G5">
+                </div>
+                <div class="overflow-hidden rounded-3xl h-64 shadow-md aspect-square" data-aos="zoom-in" data-aos-delay="200">
+                    <img src="img/foto 8.jpg" class="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="G6">
+                </div>
+            </div>
+            <div class="text-center mt-10">
+                <a href="https://wa.me/6289638947232?text=Halo%20HD%20Fotografy,%20saya%20ingin%20bertanya%20tentang..."
+                   target="_blank" class="inline-block text-stone-400 text-xs italic">
+                    HD_Photografy - Klik untuk konsultasi foto prewedding &amp; wedding day
+                </a>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- SLIDE 5 — RSVP + WEDDING GIFT + BUKU TAMU + FOOTER      -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div id="slide-rsvp" class="slide">
+
+    <!-- RSVP + WEDDING GIFT -->
+    <section id="rsvp" class="py-24 px-6 bg-white">
+        <div class="container mx-auto max-w-xl">
+            <div class="glass-morphism p-10 rounded-[3rem] shadow-2xl border-2 border-pink-50" data-aos="fade-up">
+                <h2 class="font-cursive text-5xl text-center text-pink-600 mb-8">RSVP</h2>
+                <form id="rsvp-form" class="space-y-6">
+                    <input type="text" id="rsvp-name" required placeholder="Nama Lengkap"
+                        class="w-full px-6 py-4 rounded-2xl border border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-400 bg-white/50 transition-all">
+                    <select id="rsvp-status" required
+                        class="w-full px-6 py-4 rounded-2xl border border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-400 bg-white/50 transition-all">
+                        <option value="">Konfirmasi Kehadiran</option>
+                        <option value="Hadir">Hadir</option>
+                        <option value="Berhalangan">Berhalangan</option>
+                    </select>
+                    <button type="submit"
+                        class="w-full bg-pink-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-pink-700 transition-all">
+                        Kirim Konfirmasi
+                    </button>
+                </form>
+
+                <!-- Daftar RSVP tersimpan -->
+                <div id="rsvp-list-wrapper" class="mt-8 hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-serif text-lg text-pink-900 font-bold">Daftar Konfirmasi</h3>
+                        <span id="rsvp-count" class="text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1 rounded-full"></span>
+                    </div>
+                    <div id="rsvp-list" class="space-y-3 max-h-[300px] overflow-y-auto pr-1"></div>
+                </div>
+
+                <hr class="my-12 border-pink-100">
+
+                <!-- WEDDING GIFT -->
+                <h2 class="font-serif text-2xl text-center text-pink-900 mb-6">Wedding Gift</h2>
+                <div class="bg-pink-50 p-8 rounded-[2rem] text-center border border-pink-100">
+                    <p class="font-bold text-gray-700 mb-2">BRI</p>
+                    <p id="acc-number" class="text-xl font-mono font-bold text-pink-600 mb-4">0987654321</p>
+                    <p class="text-sm text-gray-500 mb-6 uppercase">A/n KHOIRUDDIN</p>
+                    <div class="flex gap-2">
+                        <button onclick="copyAcc()"
+                            class="flex-1 bg-white text-pink-600 border border-pink-200 py-3 rounded-xl hover:bg-pink-600 hover:text-white transition-all text-sm font-semibold">
+                            <i class="fa-regular fa-copy mr-2"></i> Salin
+                        </button>
+                        <a href="https://wa.me/6289638947232?text=Halo%20Nuha%2C%20saya%20sudah%20mengirimkan%20kado%20pernikahan..."
+                           class="flex-1 bg-green-500 text-white py-3 rounded-xl hover:bg-green-600 transition-all text-sm font-semibold flex items-center justify-center">
+                            <i class="fa-brands fa-whatsapp mr-2"></i> Konfirmasi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-6">
+            <a href="https://wa.me/6289638947232?text=Halo%20HD%20Fotografy,%20saya%20ingin%20bertanya%20tentang..."
+               target="_blank" class="inline-block text-stone-400 text-xs italic">
+                HD_Photografy - Klik untuk konsultasi foto prewedding &amp; wedding day
+            </a>
+        </div>
+    </section>
+
+    <!-- BUKU TAMU DIGITAL -->
+    <section id="bukutamu" class="py-24 px-6 bg-pink-50">
+        <div class="container mx-auto max-w-2xl text-center">
+            <h2 class="font-serif text-3xl text-pink-900 mb-8">Buku Tamu Digital</h2>
+            <div class="bg-white p-10 rounded-[3rem] shadow-lg mb-10" data-aos="fade-up">
+                <p class="text-gray-400 italic mb-6">"Tuliskan ucapan dan doa terbaik untuk kami"</p>
+                <form id="wish-form" class="space-y-4">
+                    <input type="text" id="wish-name" placeholder="Nama Anda"
+                        class="w-full px-6 py-4 rounded-2xl border border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-400" required>
+                    <textarea id="wish-text" rows="3" placeholder="Tulis ucapan &amp; doa..."
+                        class="w-full px-6 py-4 rounded-2xl border border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-400" required></textarea>
+                    <button type="submit"
+                        class="bg-pink-600 text-white px-10 py-3 rounded-full font-bold shadow-lg hover:bg-pink-700 transition-all">
+                        Kirim Ucapan
+                    </button>
+                </form>
+            </div>
+            <div id="wishes-list" class="space-y-4 text-left max-h-[400px] overflow-y-auto px-4"></div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-24 bg-pink-900 text-white text-center pb-32">
+        <h1 class="font-serif text-3xl mb-4 tracking-[0.3em] uppercase">Terima Kasih</h1>
+        <h2 class="font-cursive text-6xl mb-4">Romeo &amp; Juliet</h2>
+        <p class="opacity-60 text-sm tracking-widest uppercase">Created By; HD_Photografy 0896-3894-7232 &bull; 2026</p>
+    </footer>
+
+</div>
+<!-- ── end slide-rsvp ── -->
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- NAVBAR (fixed bottom)                                   -->
+<!-- ════════════════════════════════════════════════════════ -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md glass-morphism rounded-full px-6 py-4 flex justify-between items-center shadow-2xl border-white/80">
+    <button onclick="showSlide('home')"    data-slide="home"    class="nav-link nav-active">
+        <i class="fa-solid fa-house text-lg"></i>
+        <span class="text-[9px] uppercase font-bold">Home</span>
+    </button>
+    <button onclick="showSlide('couple')"  data-slide="couple"  class="nav-link">
+        <i class="fa-solid fa-heart text-lg"></i>
+        <span class="text-[9px] uppercase font-bold">Couple</span>
+    </button>
+    <button onclick="showSlide('event')"   data-slide="event"   class="nav-link">
+        <i class="fa-solid fa-calendar-day text-lg"></i>
+        <span class="text-[9px] uppercase font-bold">Event</span>
+    </button>
+    <button onclick="showSlide('gallery')" data-slide="gallery" class="nav-link">
+        <i class="fa-solid fa-images text-lg"></i>
+        <span class="text-[9px] uppercase font-bold">Gallery</span>
+    </button>
+    <button onclick="showSlide('rsvp')"    data-slide="rsvp"    class="nav-link">
+        <i class="fa-solid fa-pen-to-square text-lg"></i>
+        <span class="text-[9px] uppercase font-bold">RSVP</span>
+    </button>
+</nav>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT                                              -->
+<!-- ════════════════════════════════════════════════════════ -->
+<script>
+// ============================================================
+// FIREBASE CONFIG — ISI BAGIAN INI UNTUK AKTIFKAN SHARED DATA
+// Panduan: baca komentar di bagian <head> di atas
+// ============================================================
+const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyCwESvF2HzF3fCPHevjRgFATnZfsGjHZ8Q",
+    authDomain:        "undangan-01-c611b.firebaseapp.com",
+    databaseURL:       "https://undangan-01-c611b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "undangan-01-c611b",
+    storageBucket:     "undangan-01-c611b.firebasestorage.app",
+    messagingSenderId: "668190822017",
+    appId:             "1:668190822017:web:ad86090e88e6f0062d4780"
+};
+
+const USE_FIREBASE = FIREBASE_CONFIG.databaseURL.trim() !== "";
+let fireDb = null;
+
+if (USE_FIREBASE) {
+    try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        fireDb = firebase.database();
+    } catch(err) {
+        console.warn("Firebase gagal inisialisasi:", err);
+    }
+}
+
+// ============================================================
+// AOS
+// ============================================================
+AOS.init({ duration: 1000, once: false });
+
+// ============================================================
+// SLIDE SYSTEM
+// ============================================================
+function showSlide(name) {
+    // Sembunyikan semua slide
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    // Tampilkan slide yang dipilih
+    const target = document.getElementById('slide-' + name);
+    if (target) target.classList.add('active');
+    // Update nav active state
+    document.querySelectorAll('.nav-link').forEach(btn => {
+        btn.classList.toggle('nav-active', btn.dataset.slide === name);
+    });
+    // Reset scroll ke atas
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Refresh AOS agar animasi tampil ulang
+    setTimeout(() => AOS.refresh(), 80);
+}
+
+// ============================================================
+// OPEN INVITATION
+// ============================================================
+function openInvitation() {
+    const overlay = document.getElementById('welcome-overlay');
+    const music   = document.getElementById('bg-music');
+    overlay.style.transition = 'opacity 0.8s ease';
+    overlay.style.opacity    = '0';
+    setTimeout(() => {
+        overlay.style.visibility = 'hidden';
+        music.play().catch(e => console.log("Music blocked:", e));
+        startPetals();
+    }, 800);
+}
+
+// ============================================================
+// FALLING PETALS
+// ============================================================
+function startPetals() {
+    const container = document.getElementById('petals');
+    setInterval(() => {
+        const petal = document.createElement('div');
+        petal.className = 'petal';
+        const size = Math.random() * 15 + 10 + 'px';
+        petal.style.width  = size;
+        petal.style.height = size;
+        petal.style.left   = Math.random() * 98 + 'vw';
+        petal.style.animationDuration = Math.random() * 5 + 5 + 's';
+        container.appendChild(petal);
+        setTimeout(() => petal.remove(), 10000);
+    }, 500);
+}
+
+// ============================================================
+// COUNTDOWN
+// ============================================================
+const targetDate = new Date("May 30, 2026 08:00:00").getTime();
+setInterval(() => {
+    const distance = targetDate - Date.now();
+    if (distance < 0) {
+        document.getElementById('countdown').innerHTML =
+            '<p class="text-2xl font-bold text-pink-600 text-center w-full">Hari Bahagia Telah Tiba! 🎊</p>';
+        return;
+    }
+    const d = Math.floor(distance / 86400000);
+    const h = Math.floor((distance % 86400000) / 3600000);
+    const m = Math.floor((distance % 3600000)  / 60000);
+    const s = Math.floor((distance % 60000)    / 1000);
+    document.getElementById("days").innerText    = d < 10 ? "0"+d : d;
+    document.getElementById("hours").innerText   = h < 10 ? "0"+h : h;
+    document.getElementById("minutes").innerText = m < 10 ? "0"+m : m;
+    document.getElementById("seconds").innerText = s < 10 ? "0"+s : s;
+}, 1000);
+
+// ============================================================
+// COPY REKENING
+// ============================================================
+function copyAcc() {
+    const accNum = document.getElementById('acc-number').innerText;
+    navigator.clipboard.writeText(accNum).then(() => {
+        alert('Nomor Rekening Berhasil Disalin!');
+    }).catch(() => {
+        const el = document.createElement('textarea');
+        el.value = accNum;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert('Nomor Rekening Berhasil Disalin!');
+    });
+}
+
+// ============================================================
+// ESCAPE HTML (keamanan XSS)
+// ============================================================
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
+}
+
+// ============================================================
+// RSVP — Firebase (shared) atau localStorage (local)
+// ============================================================
+const RSVP_LS_KEY = 'wedding_rsvp_nuhaabi';
+
+function renderRSVP(dataArr) {
+    const list    = document.getElementById('rsvp-list');
+    const wrapper = document.getElementById('rsvp-list-wrapper');
+    const countEl = document.getElementById('rsvp-count');
+    if (!dataArr || dataArr.length === 0) {
+        wrapper.classList.add('hidden');
+        return;
+    }
+    wrapper.classList.remove('hidden');
+    countEl.textContent = dataArr.length + ' tamu';
+    list.innerHTML = '';
+    [...dataArr].reverse().forEach(item => {
+        const isHadir = item.status === 'Hadir';
+        const div = document.createElement('div');
+        div.className = 'bg-pink-50 p-4 rounded-2xl ' + (isHadir ? 'rsvp-item-hadir' : 'rsvp-item-berhalangan');
+        div.innerHTML = `
+            <div class="flex items-center justify-between">
+                <p class="font-bold text-pink-900 text-sm">${escapeHtml(item.name)}</p>
+                <span class="${isHadir ? 'badge-hadir' : 'badge-berhalangan'}">${escapeHtml(item.status)}</span>
+            </div>
+            <p class="text-gray-400 text-xs mt-1">${escapeHtml(item.time)}</p>`;
+        list.appendChild(div);
+    });
+}
+
+// Listener RSVP
+if (USE_FIREBASE && fireDb) {
+    fireDb.ref('rsvp').on('value', snap => {
+        const raw = snap.val();
+        renderRSVP(raw ? Object.values(raw) : []);
+    });
+} else {
+    try {
+        renderRSVP(JSON.parse(localStorage.getItem(RSVP_LS_KEY)) || []);
+    } catch(e) { renderRSVP([]); }
+}
+
+// Submit RSVP
+document.getElementById('rsvp-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const name   = document.getElementById('rsvp-name').value.trim();
+    const status = document.getElementById('rsvp-status').value;
+    if (!name || !status) return;
+    const entry  = {
+        name, status,
+        time: new Date().toLocaleString('id-ID', { dateStyle:'medium', timeStyle:'short' })
+    };
+
+    if (USE_FIREBASE && fireDb) {
+        // Cek nama duplikat lalu simpan / update
+        fireDb.ref('rsvp').orderByChild('name').equalTo(name).once('value', snap => {
+            if (snap.exists()) {
+                const key = Object.keys(snap.val())[0];
+                fireDb.ref('rsvp/' + key).set(entry);
+            } else {
+                fireDb.ref('rsvp').push(entry);
+            }
+        });
+    } else {
+        try {
+            const data = JSON.parse(localStorage.getItem(RSVP_LS_KEY)) || [];
+            const idx  = data.findIndex(i => i.name.toLowerCase() === name.toLowerCase());
+            if (idx !== -1) data[idx] = entry; else data.push(entry);
+            localStorage.setItem(RSVP_LS_KEY, JSON.stringify(data));
+            renderRSVP(data);
+        } catch(err) { console.error(err); }
+    }
+
+    alert((status === 'Hadir' ? '🎉' : '🙏') + ' Terima kasih, ' + name + '!\nKonfirmasi "' + status + '" berhasil tersimpan.');
+    e.target.reset();
+});
+
+// ============================================================
+// BUKU TAMU — Firebase (shared) atau localStorage (local)
+// ============================================================
+const WISH_LS_KEY = 'wedding_wishes_nuhaabi';
+
+function renderWishes(dataArr) {
+    const list = document.getElementById('wishes-list');
+    list.innerHTML = '';
+    if (!dataArr || dataArr.length === 0) {
+        list.innerHTML = `
+            <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-pink-400">
+                <p class="font-bold text-pink-900 text-sm">Sahabat Abi &amp; Nuha</p>
+                <p class="text-gray-600 text-xs mt-1 italic">"Selamat ya Abi &amp; Nuha! Semoga langgeng sampai kakek nenek."</p>
+            </div>`;
+        return;
+    }
+    [...dataArr].reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'bg-white p-6 rounded-2xl shadow-sm border-l-4 border-pink-400';
+        div.innerHTML = `
+            <p class="font-bold text-pink-900 text-sm">${escapeHtml(item.name)}</p>
+            <p class="text-gray-600 text-xs mt-1 italic">"${escapeHtml(item.text)}"</p>
+            <p class="text-gray-300 text-xs mt-2">${escapeHtml(item.time)}</p>`;
+        list.appendChild(div);
+    });
+}
+
+// Listener Buku Tamu
+if (USE_FIREBASE && fireDb) {
+    fireDb.ref('wishes').on('value', snap => {
+        const raw = snap.val();
+        renderWishes(raw ? Object.values(raw) : []);
+    });
+} else {
+    try {
+        renderWishes(JSON.parse(localStorage.getItem(WISH_LS_KEY)) || []);
+    } catch(e) { renderWishes([]); }
+}
+
+// Submit Buku Tamu
+document.getElementById('wish-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = document.getElementById('wish-name').value.trim();
+    const text = document.getElementById('wish-text').value.trim();
+    if (!name || !text) return;
+    const entry = {
+        name, text,
+        time: new Date().toLocaleString('id-ID', { dateStyle:'medium', timeStyle:'short' })
+    };
+
+    if (USE_FIREBASE && fireDb) {
+        fireDb.ref('wishes').push(entry);
+    } else {
+        try {
+            const data = JSON.parse(localStorage.getItem(WISH_LS_KEY)) || [];
+            data.push(entry);
+            localStorage.setItem(WISH_LS_KEY, JSON.stringify(data));
+            renderWishes(data);
+        } catch(err) { console.error(err); }
+    }
+
+    e.target.reset();
+    alert('💌 Ucapan kamu sudah terkirim! Terima kasih.');
+});
+
+// ============================================================
+// NAMA TAMU DARI URL  (?to=NamaTamu)
+// ============================================================
+const urlParams = new URLSearchParams(window.location.search);
+const namaTamu  = urlParams.get('to');
+document.getElementById('nama-tamu').innerText = namaTamu
+    ? decodeURIComponent(namaTamu)
+    : 'Tamu Undangan Yang Terhormat';
+</script>
+</body>
+</html>
